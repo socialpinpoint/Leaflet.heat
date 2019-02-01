@@ -1,5 +1,5 @@
 'use strict';
-
+/* eslint-disable */
 L.HeatLayer = (L.Layer ? L.Layer : L.Class).extend({
 
     // options: {
@@ -23,6 +23,15 @@ L.HeatLayer = (L.Layer ? L.Layer : L.Class).extend({
     addLatLng: function (latlng) {
         this._latlngs.push(latlng);
         return this.redraw();
+    },
+
+    showHideMatching: function (id) {
+        this._latlngs.each(function (coord) {
+            if (coord.length === 5) {
+                coord[4] = coord[3] === id;
+            }
+        });
+        this.redraw();
     },
 
     setOptions: function (options) {
@@ -49,7 +58,7 @@ L.HeatLayer = (L.Layer ? L.Layer : L.Class).extend({
 
         if (this.options.pane) {
             this.getPane().appendChild(this._canvas);
-        }else{
+        } else {
             map._panes.overlayPane.appendChild(this._canvas);
         }
 
@@ -65,7 +74,7 @@ L.HeatLayer = (L.Layer ? L.Layer : L.Class).extend({
     onRemove: function (map) {
         if (this.options.pane) {
             this.getPane().removeChild(this._canvas);
-        }else{
+        } else {
             map.getPanes().overlayPane.removeChild(this._canvas);
         }
 
@@ -148,14 +157,20 @@ L.HeatLayer = (L.Layer ? L.Layer : L.Class).extend({
 
         // console.time('process');
         for (i = 0, len = this._latlngs.length; i < len; i++) {
-            p = this._map.latLngToContainerPoint(this._latlngs[i]);
+            var latlng = this._latlngs[i];
+            // Skip this latlng if we're filtering it out
+            if (latlng.length === 5 && latlng[4] === false) { // size of 5 indicates we are storing an id against this latlng and a filter value
+                continue;
+            }
+
+            p = this._map.latLngToContainerPoint(latlng);
             if (bounds.contains(p)) {
                 x = Math.floor((p.x - offsetX) / cellSize) + 2;
                 y = Math.floor((p.y - offsetY) / cellSize) + 2;
 
                 var alt =
-                    this._latlngs[i].alt !== undefined ? this._latlngs[i].alt :
-                    this._latlngs[i][2] !== undefined ? +this._latlngs[i][2] : 1;
+                    latlng.alt !== undefined ? latlng.alt :
+                    latlng[2] !== undefined ? + latlng[2] : 1;
                 k = alt * v;
 
                 grid[y] = grid[y] || [];
